@@ -26,9 +26,9 @@ issuePath :: String
 issuePath = "/rest/issue/"
 
 data YouTrackAuth = YouTrackAuth {
-  hostname :: String,
-  sessionId :: String,
-  principal :: String
+  hostname :: C.ByteString,
+  sessionId :: C.ByteString,
+  principal :: C.ByteString
 } deriving Show
 
 type Resp = Response LBS.ByteString
@@ -40,16 +40,16 @@ mkAuth hostname username password = do
   return YouTrackAuth {
     sessionId = (res ^. responseCookie "JSESSIONID" . cookieValue),
     principal = (res ^. responseCookie "jetbrains.charisma.main.security.PRINCIPAL" . cookieValue),
-    hostname = "bar"
+    hostname = (C.pack hostname)
   }
     where opts = defaults & param "login" .~ [(T.pack username)] & param "password" .~ [(T.pack password)] & header "Accept" .~ ["application/json"]
 
--- getIssue :: YouTrackAuth -> Issue -> IO Resp
--- getIssue auth issue =
---   withManager $ \_ -> getWith opts issueUrl
---   where
---     issueUrl = () ++ issuePath ++ (show issue)
---     opts = defaults & header "Set-Cookie" .~ [C.pack $ auth ^. sessionId, C.pack $ auth ^. principal]
+getIssue :: YouTrackAuth -> Issue -> IO Resp
+getIssue auth issue =
+  withManager $ \_ -> getWith opts issueUrl
+  where
+    issueUrl = (C.unpack $ hostname auth) ++ issuePath ++ issue
+    opts = defaults & header "Set-Cookie" .~ [sessionId auth, principal auth]
 
 -- issueExists :: YouTrackAuth -> Issue -> IO Bool
 -- issueExists auth issue = do

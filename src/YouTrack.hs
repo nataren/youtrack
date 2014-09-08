@@ -69,11 +69,11 @@ buildAuthOptions auth = defaults &
 
 verifyIssue :: YouTrackAuth -> Issue -> String -> String -> String -> String -> IO ()
 verifyIssue auth issue uri release assignee comment = do
-  withManager $ \_ -> do
-    _ <- postWith (opts & param "command" .~ [setReleaseCommand]) issueExecuteUrl (C.pack "")
-    _ <- postWith (opts & param "command" .~ [setVerifyCommand]) issueExecuteUrl (C.pack "")
-    _ <- postWith (opts & param "command" .~ [setAssigneeCommand]) issueExecuteUrl (C.pack "")
-    _ <- postWith (opts & param "comment" .~ [fullComment]) issueExecuteUrl (C.pack "")
+  withManager $ \_ ->
+    postWith (opts & param "command" .~ [setReleaseCommand]) issueExecuteUrl (C.pack "") >>
+    postWith (opts & param "command" .~ [setVerifyCommand]) issueExecuteUrl (C.pack "") >>
+    postWith (opts & param "command" .~ [setAssigneeCommand]) issueExecuteUrl (C.pack "") >>
+    postWith (opts & param "comment" .~ [fullComment]) issueExecuteUrl (C.pack "") >>
     return ()
     where
       opts = buildAuthOptions auth

@@ -49,12 +49,13 @@ mkYouTrackAuth hostname username password = do
   }
     where opts = defaults & param "login" .~ [(T.pack username)] & param "password" .~ [(T.pack password)] & header "Accept" .~ ["application/json"]
 
-getIssue :: YouTrackAuth -> Issue -> IO Resp
-getIssue auth issue =
-  withManager $ \_ -> getWith opts issueUrl
-  where
-    issueUrl = (C.unpack $ hostname auth) ++ issuePath ++ issue
-    opts = buildAuthOptions auth
+getIssue :: Issue -> ReaderT YouTrackAuth IO Resp
+getIssue issue = do
+  auth' <- ask
+  liftIO $ withManager $ \_ -> do
+    let issueUrl = (C.unpack $ hostname auth') ++ issuePath ++ issue
+    let opts = buildAuthOptions auth'
+    getWith opts issueUrl
 
 issueExists :: Issue -> ReaderT YouTrackAuth IO Bool
 issueExists issue = do
@@ -70,18 +71,19 @@ buildAuthOptions auth = defaults &
                         header "Accept" .~ ["application/json"] &
                         header "Cookie" .~ [C.append (C.pack "JSESSIONID=") (sessionId auth), C.append (C.pack "jetbrains.charisma.main.security.PRINCIPAL=") (principal auth)]
 
-verifyIssue :: YouTrackAuth -> Issue -> String -> String -> String -> String -> IO ()
-verifyIssue auth issue uri release assignee comment = do
-  withManager $ \_ ->
-    postWith (opts & param "command" .~ [setReleaseCommand]) issueExecuteUrl (C.pack "") >>
-    postWith (opts & param "command" .~ [setVerifyCommand]) issueExecuteUrl (C.pack "") >>
-    postWith (opts & param "command" .~ [setAssigneeCommand]) issueExecuteUrl (C.pack "") >>
-    postWith (opts & param "comment" .~ [fullComment]) issueExecuteUrl (C.pack "") >>
+verifyIssue :: Issue -> String -> String -> String -> String -> ReaderT YouTrackAuth IO ()
+verifyIssue issue uri release assignee comment = do
+  auth' <- ask
+  liftIO $ withManager $ \_ -> do
+    let opts = buildAuthOptions auth'
+    let issueExecuteUrl = (C.unpack $ hostname auth') ++ issuePath ++ issue ++ "/execute"
+    postWith (opts & param "command" .~ [setReleaseCommand]) issueExecuteUrl (C.pack "")
+    postWith (opts & param "command" .~ [setVerifyCommand]) issueExecuteUrl (C.pack "")
+    postWith (opts & param "command" .~ [setAssigneeCommand]) issueExecuteUrl (C.pack "")
+    postWith (opts & param "comment" .~ [fullComment]) issueExecuteUrl (C.pack "")
     return ()
-    where
-      opts = buildAuthOptions auth
-      issueExecuteUrl = (C.unpack $ hostname auth) ++ issuePath ++ issue ++ "/execute"
-      setReleaseCommand = T.pack $ "In Release " ++ release
-      setVerifyCommand = T.pack $ "State Verified"
-      setAssigneeCommand = T.pack $ "Assignee " ++ assignee
-      fullComment = T.pack $ comment ++ "\nPull request: " ++ uri ++ "\nAuthor: " ++ assignee
+      where
+        setReleaseCommand = T.pack $ "In Release " ++ release
+        setVerifyCommand = T.pack $ "State Verified"
+        setAssigneeCommand = T.pack $ "Assignee " ++ assignee
+        fullComment = T.pack $ comment ++ "\nPull request: " ++ uri ++ "\nAuthor: " ++ assignee

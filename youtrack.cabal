@@ -57,7 +57,7 @@ library
   other-extensions:    OverloadedStrings
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.7 && <4.8, containers >=0.5 && <0.6, text >=1.1 && <1.2, HsOpenSSL >=0.11 && <0.12, wreq >=0.1.0.1, lens >=4.1, aeson >=0.7.0.5,  http-client-tls >= 0.2, http-client >= 0.3.1.1, http-types >=0.8, http-client-openssl >= 0.2, bytestring
+  build-depends:       base >=4.7 && <4.8, containers >=0.5 && <0.6, text >=1.1 && <1.2, HsOpenSSL >=0.11 && <0.12, wreq >=0.1.0.1, lens >=4.1, aeson >=0.7.0.5,  http-client-tls >= 0.2, http-client >= 0.3.1.1, http-types >=0.8, http-client-openssl >= 0.2, bytestring, transformers
   
   -- Directories containing source files.
   hs-source-dirs:      src

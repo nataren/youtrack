@@ -3,6 +3,7 @@
 -- | Driver for the YouTrack REST API
 -- http://confluence.jetbrains.com/display/YTD5/Log+in+to+YouTrack
 module YouTrack where
+import Control.Monad.Trans.Reader
 import Data.Map as Map
 import Data.Aeson (Value(Null))
 import qualified Data.Text as T
@@ -15,6 +16,8 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C
 import Control.Exception as E
 import qualified Network.HTTP.Client as HttpClient
+import Control.Monad.Trans.Class
+import Control.Monad.IO.Class
 
 type Hostname = String
 type Username = String
@@ -53,14 +56,14 @@ getIssue auth issue =
     issueUrl = (C.unpack $ hostname auth) ++ issuePath ++ issue
     opts = buildAuthOptions auth
 
-issueExists :: YouTrackAuth -> Issue -> IO Bool
-issueExists auth issue = do
-  withManager $ \_ -> do
+issueExists :: Issue -> ReaderT YouTrackAuth IO Bool
+issueExists issue = do
+  auth' <- ask
+  liftIO $ withManager $ \_ -> do
+    let issueExistsUrl = (C.unpack $ hostname auth') ++ issuePath ++ issue ++ "/exists"
+    let opts = buildAuthOptions auth'
     r <- getWith opts issueExistsUrl
     return $ r ^. responseStatus . statusCode == 200
-  where
-    issueExistsUrl = (C.unpack $ hostname auth) ++ issuePath ++ issue ++ "/exists"
-    opts = buildAuthOptions auth
 
 buildAuthOptions :: YouTrackAuth -> Options
 buildAuthOptions auth = defaults &
